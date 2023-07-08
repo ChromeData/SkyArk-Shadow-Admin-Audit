@@ -1,0 +1,71 @@
+# Ground truth: every escalation path deliberately planted by the Terraform.
+# Score SkyArk's output against this. The `caught` field is yours to fill after
+# the scan, that diff is the actual deliverable of the lab.
+
+aws:
+  - id: passrole-ec2
+    principal: lab-shadow-passrole
+    technique: PassRole + RunInstances
+    reaches: lab-real-admin (AdministratorAccess)
+    why_dangerous: >
+      Launches an EC2 instance with the admin instance profile, then reads the
+      instance metadata credentials. No admin-named permission involved.
+    caught: null        # true | false | partial, fill after scan
+    skyark_label: ""    # what SkyArk actually called it, verbatim
+
+  - id: createpolicyversion
+    principal: lab-shadow-policyversion
+    technique: CreatePolicyVersion + SetDefaultPolicyVersion
+    reaches: "*"
+    why_dangerous: >
+      Writes a new default version of an attached policy, granting itself any
+      action. The attachment looks benign (s3:ListAllMyBuckets).
+    caught: null
+    skyark_label: ""
+
+  - id: attachuserpolicy
+    principal: lab-shadow-attach
+    technique: AttachUserPolicy self-grant
+    reaches: "*"
+    why_dangerous: Attaches AdministratorAccess to itself in one call.
+    caught: null
+    skyark_label: ""
+
+  - id: assumerole-broad-trust
+    principal: lab-shadow-assumer
+    technique: sts:AssumeRole against a role trusting the whole account
+    reaches: lab-real-admin (AdministratorAccess)
+    why_dangerous: >
+      The trust policy scopes to the account root rather than a specific
+      principal, so any principal in the account can assume admin.
+    caught: null
+    skyark_label: ""
+
+azure:
+  - id: roleassignments-write
+    principal: lab-shadow-ops
+    technique: Custom role including Microsoft.Authorization/roleAssignments/write
+    reaches: Owner (self-granted)
+    why_dangerous: >
+      Role is named "vm-operations" and reads as scoped, but the holder can
+      assign themselves any role at subscription scope.
+    caught: null
+    skyark_label: ""
+
+  - id: graph-directory-readwrite
+    principal: lab-shadow-graph-app
+    technique: Service principal with Directory.ReadWrite.All
+    reaches: directory-wide write
+    why_dangerous: >
+      Can add itself to privileged groups or reset user credentials. Requires the
+      manual admin-consent step in the README to be fully live.
+    caught: null
+    skyark_label: ""
+
+# Scoring summary, fill in after `make score`
+summary:
+  planted: 6
+  caught: null
+  missed: null
+  false_positives: []   # anything SkyArk flagged that you did NOT plant
+  notes: ""
