@@ -1,63 +1,67 @@
-# Lab Notes — SkyArk Shadow-Admin Audit
+# Lab Notes — 02 Shadow-Admin Discovery
 
-> Running log, newest first.
-
----
-
-## Known traps (pre-seeded — confirm or replace with real entries)
-
-### AzureStealth needs the right consent
-
-The `Directory.ReadWrite.All` service principal (shadow admin #2) is only fully
-live after the manual admin-consent step. Until then AzureStealth may not flag it
-as reachable, which is itself a useful finding to note: the tool sees granted
-permissions, not requested ones.
-
-### AWStealth column names drift between versions
-
-`score.py` searches for a name-like column rather than hardcoding one, and prints
-which column it used. If scoring looks wrong, check that line first — the CSV
-schema has changed across SkyArk releases.
-
-### Read-only creds are enough
-
-Run both scans with read-only credentials. If you find yourself reaching for write
-access to make a scan work, stop — discovery tooling that needs write access is a
-red flag, and noticing that instinct is part of the lab.
-
-### The "extra" findings are the interesting ones
-
-Anything SkyArk flags that you did not plant (`[EXTRA]` in the scorecard) is either
-a real escalation path you created by accident, or a default account in the tenant.
-Both are worth a paragraph. Do not just dismiss them as noise.
+Running log. Errors, dead ends, fixes, surprises. Dated, newest at the bottom.
 
 ---
 
-## YYYY-MM-DD — <first real entry>
-
-**Goal:**
-
-**What happened:**
+## Format
 
 ```
-```
+### YYYY-MM-DD — what I was trying to do
 
-**Why:**
-
+**Expected:**
+**Got:**
+**Cause:**
 **Fix:**
+```
 
-**Time lost:**
+---
+
+## Design decisions
+
+### Name matching is substring-both-ways
+
+SkyArk decorates names — "lab-shadow-passrole (IAM User)", or a full ARN. Exact
+equality would score every real catch as a miss. Substring both ways handles it.
+Limitation: single-character principal names would collide; real lab-shadow-*
+names never do. Pinned by tests.
+
+### Guardrails run before the vulnerable resources
+
+The escalation paths are real. `guardrails.tf` uses lifecycle preconditions to
+refuse an org management account and require an explicit account allowlist. A
+lab that plants AttachUserPolicy self-grants must not run where it matters.
+
+### The value is the MISSED list
+
+A clean 6/6 catch is a fine result but a boring one. The interesting write-up is
+any path SkyArk misses, and *why* — that's the sentence that shows judgement
+rather than tool-operation.
+
+---
+
+## Known traps (confirm on first scan)
+
+- **SkyArk column names drift between versions and between AWStealth/AzureStealth.**
+  `score.py` searches for a name-like column and prints which one it used —
+  check that line matches reality before trusting the score.
+- **The Azure graph app needs manual admin consent.** `lab-shadow-graph-app`
+  isn't fully live until the consent step in the README is done. Until then it
+  may not surface, which reads as a false miss.
+- **PassRole path may need the instance profile to exist.** Confirm SkyArk flags
+  the user on the permission alone, not only once an instance is running.
 
 ---
 
 ## Open questions
 
-- [ ] Does AWStealth's "privileged" definition include indirect PassRole paths, or
-      only direct policy grants?
-- [ ] How do AWStealth and AzureStealth differ in what they call "shadow admin"?
-- [ ] Which of the 6 planted paths would a standard CSPM (Prowler) also catch?
-      Cross-reference with Lab 04.
+- [ ] Which of the six does SkyArk actually catch? Record verbatim labels.
+- [ ] Does it rank the PassRole path as high as the direct AttachUserPolicy one?
+- [ ] Any false positives from the benign-looking `lab-editable-policy`?
+- [ ] Does AzureStealth see the graph app before admin consent?
 
-## What I would do differently
+---
 
-_End._
+## Log
+
+_(first entry goes here on the first real scan)_
