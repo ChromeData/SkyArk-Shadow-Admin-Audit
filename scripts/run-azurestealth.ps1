@@ -30,5 +30,5 @@ if ($latest) {
     Copy-Item $latest.FullName (Join-Path $outDir "azurestealth-raw.csv") -Force
     Write-Host "==> Wrote findings/azurestealth-raw.csv"
 } else {
-    Write-Warning "No AzureStealth CSV found — check the scan output above."
+    Write-Warning "No AzureStealth CSV found, check the scan output above."
 }

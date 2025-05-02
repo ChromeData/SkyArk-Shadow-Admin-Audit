@@ -10,7 +10,7 @@ help: ## Show this help
 
 clone-skyark: ## Clone cyberark/SkyArk into ./vendor (gitignored)
 	@test -d vendor/SkyArk || git clone --depth 1 https://github.com/cyberark/SkyArk vendor/SkyArk
-	@echo "SkyArk at ./vendor/SkyArk — upstream, not mine. See README attribution."
+	@echo "SkyArk at ./vendor/SkyArk, upstream, not mine. See README attribution."
 
 aws-up: ## Plant the AWS escalation paths
 	$(AWS_TF) init -upgrade

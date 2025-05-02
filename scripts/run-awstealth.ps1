@@ -18,7 +18,7 @@ Write-Host "==> Importing AWStealth (upstream cyberark/SkyArk)"
 . $skyark
 
 # AWStealth reads AWS creds from the standard SDK chain. Use a READ-ONLY key for
-# the scan — the whole point is that discovery does not need write access.
+# the scan, the whole point is that discovery does not need write access.
 Write-Host "==> Scanning. This enumerates IAM; it does not modify anything."
 $outDir = Join-Path $labRoot "findings"
 Scan-AWShadowAdmins -OutputFolder $outDir
@@ -30,5 +30,5 @@ if ($latest) {
     Copy-Item $latest.FullName (Join-Path $outDir "awstealth-raw.csv") -Force
     Write-Host "==> Wrote findings/awstealth-raw.csv"
 } else {
-    Write-Warning "No AWStealth CSV found — check the scan output above."
+    Write-Warning "No AWStealth CSV found, check the scan output above."
 }

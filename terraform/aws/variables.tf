@@ -1,6 +1,6 @@
 # Variables for the AWS side of the shadow-admin lab.
 # The guardrails in guardrails.tf refuse to apply unless the current account is
-# explicitly allowlisted here — a deliberate speed bump in front of a config that
+# explicitly allowlisted here, a deliberate speed bump in front of a config that
 # creates real escalation paths.
 
 variable "allowed_account_ids" {

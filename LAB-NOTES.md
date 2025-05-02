@@ -1,4 +1,4 @@
-# Lab Notes — 02 Shadow-Admin Discovery
+# Lab Notes, 02 Shadow-Admin Discovery
 
 Running log. Errors, dead ends, fixes, surprises. Dated, newest at the bottom.
 
@@ -7,7 +7,7 @@ Running log. Errors, dead ends, fixes, surprises. Dated, newest at the bottom.
 ## Format
 
 ```
-### YYYY-MM-DD — what I was trying to do
+### YYYY-MM-DD, what I was trying to do
 
 **Expected:**
 **Got:**
@@ -21,7 +21,7 @@ Running log. Errors, dead ends, fixes, surprises. Dated, newest at the bottom.
 
 ### Name matching is substring-both-ways
 
-SkyArk decorates names — "lab-shadow-passrole (IAM User)", or a full ARN. Exact
+SkyArk decorates names, "lab-shadow-passrole (IAM User)", or a full ARN. Exact
 equality would score every real catch as a miss. Substring both ways handles it.
 Limitation: single-character principal names would collide; real lab-shadow-*
 names never do. Pinned by tests.
@@ -35,7 +35,7 @@ lab that plants AttachUserPolicy self-grants must not run where it matters.
 ### The value is the MISSED list
 
 A clean 6/6 catch is a fine result but a boring one. The interesting write-up is
-any path SkyArk misses, and *why* — that's the sentence that shows judgement
+any path SkyArk misses, and *why*, that's the sentence that shows judgement
 rather than tool-operation.
 
 ---
@@ -43,8 +43,7 @@ rather than tool-operation.
 ## Known traps (confirm on first scan)
 
 - **SkyArk column names drift between versions and between AWStealth/AzureStealth.**
-  `score.py` searches for a name-like column and prints which one it used —
-  check that line matches reality before trusting the score.
+  `score.py` searches for a name-like column and prints which one it used, check that line matches reality before trusting the score.
 - **The Azure graph app needs manual admin consent.** `lab-shadow-graph-app`
   isn't fully live until the consent step in the README is done. Until then it
   may not surface, which reads as a false miss.
@@ -64,7 +63,7 @@ rather than tool-operation.
 
 ## Log
 
-### 2026-08-12 — first validate on the AWS tenant
+### 2026-08-12, first validate on the AWS tenant
 
 **Expected:** clean.
 
@@ -86,7 +85,7 @@ account, and it should own the account lookup it gates on.
 
 ---
 
-### 2026-08-12 — a test caught a real property of the matcher
+### 2026-08-12, a test caught a real property of the matcher
 
 **Expected:** the false-positive test to pass.
 

@@ -28,7 +28,7 @@ resource "null_resource" "guardrail_account_allowlist" {
   lifecycle {
     precondition {
       condition     = contains(var.allowed_account_ids, data.aws_caller_identity.current.account_id)
-      error_message = "Current account is not in allowed_account_ids. Add it explicitly — no accidental applies."
+      error_message = "Current account is not in allowed_account_ids. Add it explicitly, no accidental applies."
     }
   }
 }
