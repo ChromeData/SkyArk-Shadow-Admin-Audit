@@ -1,96 +1,68 @@
-# Lab 02 — Shadow-Admin Discovery Across AWS + Azure
+# Lab 02: Shadow Admin Discovery Across AWS and Azure
 
 [![tests](https://github.com/ChromeData/SkyArk-Shadow-Admin-Audit/actions/workflows/tests.yml/badge.svg)](https://github.com/ChromeData/SkyArk-Shadow-Admin-Audit/actions/workflows/tests.yml)
 
-**Some accounts aren't named "admin" but can turn themselves into admin. I plant
-six of them on purpose across AWS and Azure, run CyberArk's SkyArk to hunt them,
-and score what it catches against what I actually buried.**
+**Some accounts are not named "admin" but can turn themselves into admin. I plant six of them on purpose across AWS and Azure, run CyberArk's SkyArk to hunt them, and score what it catches against what I buried.**
 
 | | |
 |---|---|
-| **Domains** | CyberArk/Idira · AWS · Azure |
-| **Built on** | [cyberark/SkyArk](https://github.com/cyberark/SkyArk) (MIT) — AWStealth + AzureStealth |
-| **Cost** | < $2 (IAM/IdP objects are free) · **Runtime** ~5 hours |
-| **Status** | 🟡 Built, validated, not yet scanned |
+| **Domains** | CyberArk/Idira, AWS, Azure |
+| **Built on** | [cyberark/SkyArk](https://github.com/cyberark/SkyArk) (AWStealth + AzureStealth) |
+| **Cost** | Under $2. **Runtime** ~5 hours |
+| **Status** | Built, validated, not yet scanned |
 
----
+## Situation
 
-## The point
+A shadow admin is an account that can quietly become admin. It might pass a role onto an admin, rewrite its own policy, or grant itself Owner in Azure. None of them are named admin. All of them are game over. Most people run SkyArk once against production, get a scary list, and never learn why each finding is dangerous.
 
-"Shadow admin" is the account that can `iam:PassRole` onto an admin role, or holds
-`CreatePolicyVersion` on a policy attached to something privileged, or has
-`roleAssignments/write` in Azure. **None are named admin. All are game over.**
+## Task
 
-Most people run SkyArk once against production, get a scary list, and never build
-the intuition for *why* each finding is dangerous. This inverts that: I know
-exactly what's planted, so the scan becomes a graded test.
+Turn that scan into a graded test. If I know exactly what is planted, I can measure what the tool actually catches.
 
-## The six planted paths
+## Action
 
-Each embeds one escalation primitive from the Rhino Security Labs taxonomy, and
-each looks harmless in a permission review:
+I built two cloud tenants with six escalation paths planted, each using one known trick and each looking harmless in a permission review:
 
-| Principal | Technique | Looks like | Actually |
+| Principal | Trick | Looks like | Actually |
 |---|---|---|---|
-| `lab-shadow-passrole` | PassRole + RunInstances | "some EC2 access" | launches an instance wearing the admin role |
-| `lab-shadow-policyversion` | CreatePolicyVersion | "can list S3 buckets" | rewrites its own policy to `*` |
-| `lab-shadow-attach` | AttachUserPolicy | "policy management" | attaches AdministratorAccess to itself |
-| `lab-shadow-assumer` | broad trust policy | "low-priv user" | assumes admin via an over-scoped trust |
-| `lab-shadow-ops` (Azure) | roleAssignments/write | "vm-operations" | grants itself Owner |
-| `lab-shadow-graph-app` (Azure) | Directory.ReadWrite.All | "a service principal" | resets any user's credentials |
+| passrole | PassRole + RunInstances | some EC2 access | launches an instance wearing the admin role |
+| policyversion | CreatePolicyVersion | can list S3 buckets | rewrites its own policy to allow everything |
+| attach | AttachUserPolicy | policy management | attaches full admin to itself |
+| assumer | broad trust policy | a low access user | assumes admin through a loose trust |
+| ops (Azure) | roleAssignments write | vm operations | grants itself Owner |
+| graph app (Azure) | Directory.ReadWrite.All | a service principal | resets any user's credentials |
 
-## The deliverable
+Then I wrote a scorer that diffs SkyArk's output against a ground truth file into three buckets: caught, missed, and extra.
 
-[`scripts/score.py`](./scripts/score.py) diffs SkyArk's output against
-[`findings/ground-truth.yml`](./findings/ground-truth.yml) and produces three
-buckets:
+## Result
 
-- **Caught** — planted and flagged.
-- **Missed** — planted and *not* flagged. **This is the finding worth writing
-  about**, because it's the gap between what a tool claims and what it does.
-- **Extra** — flagged but not planted. Investigate each; some are real.
+The scoring core has 9 offline tests (no cloud, no SkyArk) because if the name matching is wrong, a real catch scores as a miss and the tool looks broken. CI runs the tests plus `terraform validate` on both clouds. Building it caught a duplicate data source that `terraform validate` flagged.
 
-The scoring core is unit-tested with **9 offline tests** (no cloud, no SkyArk) —
-because if the name-matching is wrong, a real catch scores as a miss and the tool
-looks broken when it isn't. CI runs the tests plus `terraform validate` on both
-clouds.
-
-```bash
-python -m pytest tests/ -v
-```
+The missed bucket is the point. It is the gap between what a tool claims and what it does.
 
 ## Safety
 
-This lab **creates real escalation paths**.
-[`terraform/aws/guardrails.tf`](./terraform/aws/guardrails.tf) refuses to apply in
-an Organizations management account or any account not on an explicit allowlist,
-and everything is tagged `Danger=intentionally-insecure`. Throwaway account only.
-`make destroy` when done.
+This lab creates real escalation paths. The guardrails refuse to run in an Organizations management account or any account not on an explicit allowlist, and everything is tagged as intentionally insecure. Throwaway account only. `make destroy` when done.
 
-## What I didn't build
+## What I did not build
 
-SkyArk is CyberArk's. The planted-escalation environment, the ground-truth
-manifest, the scorer, and the tests are mine.
+SkyArk is CyberArk's. The planted environment, the ground truth, the scorer, and the tests are mine.
 
----
-
-## Running it
+## Run it
 
 ```bash
-make deploy-aws      # plant AWS paths (guardrails run first)
-make deploy-azure    # plant Azure paths
-make scan            # run AWStealth + AzureStealth
-make score           # grade the scan against ground truth
+make deploy-aws
+make deploy-azure
+make scan
+make score
 make destroy
 ```
 
-Needs Terraform ≥ 1.9, PowerShell 7+ (for SkyArk), Python 3, AWS + Azure test
-tenants.
+Needs Terraform 1.9+, PowerShell 7+, Python 3, AWS and Azure test tenants.
 
 ## Findings
 
-`findings/scorecard.md` is generated by `make score`. [LAB-NOTES.md](./LAB-NOTES.md)
-is the log.
+`findings/scorecard.md` comes from `make score`. [LAB-NOTES.md](./LAB-NOTES.md) is the log.
 
 ## License
 
