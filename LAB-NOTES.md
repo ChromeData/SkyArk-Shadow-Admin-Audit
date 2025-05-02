@@ -64,4 +64,50 @@ rather than tool-operation.
 
 ## Log
 
-_(first entry goes here on the first real scan)_
+### 2026-08-12 — first validate on the AWS tenant
+
+**Expected:** clean.
+
+**Got:**
+
+```
+Error: Duplicate data "aws_caller_identity" configuration
+A aws_caller_identity data resource named "current" was already declared at
+guardrails.tf:6,1-37. Resource names must be unique per type in each module.
+```
+
+**Cause:** I declared the caller-identity lookup in `main.tf` without noticing
+`guardrails.tf` already had it.
+
+**Fix:** Removed it from `main.tf` and left a comment pointing at `guardrails.tf`.
+Deliberately kept it in the guardrails file rather than the other way round: that file
+is the one that refuses to run in an org management account or an unallowlisted
+account, and it should own the account lookup it gates on.
+
+---
+
+### 2026-08-12 — a test caught a real property of the matcher
+
+**Expected:** the false-positive test to pass.
+
+**Got:**
+
+```
+>       assert extra == ["mystery-admin"]
+E       AssertionError: assert [] == ['mystery-admin']
+```
+
+**Cause:** I'd written the test with single-character principal names. Matching is
+substring-both-ways (SkyArk decorates names, e.g. `lab-shadow-passrole (IAM User)` or
+a full ARN), so `"a"` matches inside `"mystery-admin"` and the extra was swallowed.
+
+**Fix:** Rewrote the test with realistic `lab-shadow-*` names, and documented the
+limitation in the matcher's docstring: substring matching genuinely can't distinguish
+very short names. It's a real constraint, not a bug, and real principal names never
+hit it.
+
+**Note:** exact-equality matching would be "safer" here and would be much worse. It
+would score every decorated SkyArk hit as a miss and make the tool look broken. The
+loose match is the correct trade.
+
+Final run: **9 passed** (`findings/test-run.txt`).
