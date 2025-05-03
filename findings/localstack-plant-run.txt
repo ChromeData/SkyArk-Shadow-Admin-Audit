@@ -1,0 +1,80 @@
+Escalation paths planted on LocalStack, ground truth verified
+Date: 2026-08-12
+Backend: localstack/localstack:3, account 000000000000
+No AWS account. No cost.
+======================================================================
+
+WHAT RAN
+
+  terraform apply -var use_localstack=true -var skip_org_check=true \
+                  -var 'allowed_account_ids=["000000000000"]'
+
+  Apply complete! Resources: 14 added, 0 changed, 0 destroyed.
+
+  All four AWS escalation paths deploy: the PassRole+RunInstances user, the
+  CreatePolicyVersion user with its deliberately benign-looking attachment,
+  the AttachUserPolicy self-granter, and the assumer against a role whose
+  trust policy scopes to the account root.
+
+WHAT AWSTEALTH CANNOT DO HERE
+
+  AWStealth reads credentials from the standard SDK chain and exposes no
+  endpoint override, so it cannot be pointed at LocalStack. Scoring the
+  scanner still needs a real account. That half of the lab has not moved.
+
+  Patching vendored SkyArk to inject an endpoint was considered and dropped.
+  It is upstream MIT code whose behaviour is the thing under test; modifying
+  it to make the test run changes what the test measures.
+
+WHAT COULD BE VERIFIED, AND WAS
+
+  findings/ground-truth.yml is the baseline AWStealth gets scored against,
+  and nothing in this lab ever checked it. That is a real hole: if a path is
+  described there but never deploys, or deploys under a different principal
+  name, or is missing the permission that makes it dangerous, then every
+  score computed against it is wrong and nothing reports a problem. The
+  scoring baseline deserves exactly the same suspicion as a scanner's zero.
+
+  scripts/verify_ground_truth.py now checks it against live IAM:
+
+    OK  passrole-ec2            lab-shadow-passrole       (3 actions)
+    OK  createpolicyversion     lab-shadow-policyversion  (2 actions, attached=1)
+    OK  attachuserpolicy        lab-shadow-attach         (1 action)
+    OK  assumerole-broad-trust  lab-shadow-assumer        (1 action)
+
+    Ground truth matches deployed IAM: 4/4 paths verified.
+
+  It checks both directions. A principal named in ground truth but absent
+  from IAM is a problem; a lab-shadow-* principal in IAM that ground truth
+  does not describe is equally a problem, because AWStealth would flag it and
+  the diff would score it as a false positive against a scanner that was
+  right.
+
+NEGATIVE CONTROLS, RUN RATHER THAN ASSUMED
+
+  A verifier that cannot fail is not a verifier. Both failure modes were
+  induced deliberately and confirmed:
+
+    ground truth naming a principal that is not deployed
+      -> "passrole-ec2: principal lab-shadow-does-not-exist not deployed"
+      -> exit 1
+
+    a deployed principal removed from ground truth
+      -> "UNDOCUMENTED principals deployed but absent from ground truth:
+          ['lab-shadow-attach']"
+      -> exit 1
+
+    correct ground truth
+      -> 4/4 verified, exit 0
+
+  ground-truth.yml was restored byte-for-byte afterwards.
+
+  This step exists because five separate tools in these labs have now
+  reported success while reading nothing. Writing a sixth checker and simply
+  trusting its green would have been the least defensible thing in the repo.
+
+STATUS
+
+  Planting:      verified on LocalStack.
+  Ground truth:  verified against deployed IAM, both directions.
+  Scanner score: still needs a real account, unchanged.

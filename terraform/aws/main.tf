@@ -17,12 +17,48 @@ terraform {
   }
 }
 
+variable "use_localstack" {
+  description = <<-EOT
+    Point the provider at LocalStack instead of a real account.
+
+    Worth being clear about what this is for. LocalStack cannot run AWStealth
+    (it reads credentials from the SDK chain with no endpoint override), so it
+    does not let you score the scanner. What it DOES let you do is deploy every
+    planted escalation path for free and check that findings/ground-truth.yml
+    matches what actually exists in IAM.
+
+    That matters more than it sounds. Ground truth is the baseline SkyArk gets
+    scored against. If a path is described there but never deploys, or deploys
+    differently than described, every score computed against it is wrong and
+    nothing in the lab would tell you.
+
+    Also skips the account guardrails, which is safe here and ONLY here: the
+    LocalStack account is 000000000000 and there is nothing real to damage.
+  EOT
+  type        = bool
+  default     = false
+}
+
 provider "aws" {
   default_tags {
     tags = {
       Purpose = "security-lab"
       Lab     = "02-skyark-shadow-admin-audit"
       Danger  = "intentionally-insecure"
+    }
+  }
+
+  skip_credentials_validation = var.use_localstack
+  skip_requesting_account_id  = var.use_localstack
+  skip_metadata_api_check     = var.use_localstack
+
+  dynamic "endpoints" {
+    for_each = var.use_localstack ? [1] : []
+    content {
+      iam           = "http://localhost:4566"
+      sts           = "http://localhost:4566"
+      ec2           = "http://localhost:4566"
+      organizations = "http://localhost:4566"
     }
   }
 }
