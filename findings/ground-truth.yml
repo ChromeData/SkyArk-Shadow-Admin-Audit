@@ -1,6 +1,6 @@
 # Ground truth: every escalation path deliberately planted by the Terraform.
 # Score SkyArk's output against this. The `caught` field is yours to fill after
-# the scan — that diff is the actual deliverable of the lab.
+# the scan, that diff is the actual deliverable of the lab.
 
 aws:
   - id: passrole-ec2
@@ -10,7 +10,7 @@ aws:
     why_dangerous: >
       Launches an EC2 instance with the admin instance profile, then reads the
       instance metadata credentials. No admin-named permission involved.
-    caught: null        # true | false | partial — fill after scan
+    caught: null        # true | false | partial, fill after scan
     skyark_label: ""    # what SkyArk actually called it, verbatim
 
   - id: createpolicyversion
@@ -62,7 +62,7 @@ azure:
     caught: null
     skyark_label: ""
 
-# Scoring summary — fill in after `make score`
+# Scoring summary, fill in after `make score`
 summary:
   planted: 6
   caught: null
