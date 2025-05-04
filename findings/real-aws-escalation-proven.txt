@@ -1,0 +1,64 @@
+Escalation path exercised against real AWS
+Date: 2026-08-12
+Cost: $0. IAM users, roles and policies only, nothing billable.
+======================================================================
+
+WHAT LOCALSTACK COULD NOT DO
+
+  The earlier LocalStack run planted the four escalation paths and verified
+  ground truth against them, but LocalStack evaluates no policy at request
+  time, so it could never answer the only question that matters: does the
+  path actually WORK. A permission string in a policy document is not an
+  escalation until something uses it to escalate.
+
+GROUND TRUTH, AGAINST REAL IAM
+
+  OK  passrole-ec2            lab-shadow-passrole       (3 actions)
+  OK  createpolicyversion     lab-shadow-policyversion  (2 actions, attached=1)
+  OK  attachuserpolicy        lab-shadow-attach         (1 action)
+  OK  assumerole-broad-trust  lab-shadow-assumer        (1 action)
+
+  4/4 verified. The scoring baseline is measuring the right thing.
+
+THE PATH, EXERCISED FOR REAL
+
+  Took the attachuserpolicy path end to end, using ONLY the shadow user's
+  own credentials, never the admin key:
+
+    1. created an access key for lab-shadow-attach
+    2. as that user, ran:
+         aws iam attach-user-policy --user-name lab-shadow-attach \
+           --policy-arn arn:aws:iam::aws:policy/AdministratorAccess
+    3. it SUCCEEDED
+    4. confirmed the attachment took effect:
+         AttachedPolicies -> AdministratorAccess
+
+  A user whose only granted permission was iam:AttachUserPolicy made itself
+  a full administrator in one call. That is the whole point of the lab, and
+  it is now demonstrated rather than asserted: the danger is not that these
+  users are named "admin" (none are), it is that a single innocuous-looking
+  permission is a full path to admin, and an access review that greps for
+  AdministratorAccess misses it entirely.
+
+CLEANUP, CAREFULLY
+
+  The self-granted AdministratorAccess was attached OUTSIDE terraform, so
+  terraform destroy would not have known to remove it, and destroying the
+  user with a managed policy still attached would have failed. Detached it
+  explicitly first, confirmed the user had no attached policies, then
+  destroyed.
+
+  The temporary access key was deleted immediately after the test.
+
+  Destroy complete: 14 resources destroyed. Verified afterwards: no
+  lab-shadow-* users, no lab-real-admin role.
+
+STILL NOT DONE
+
+  AWStealth itself was not run. It needs Windows PowerShell and reads the
+  account through the SDK; scoring the SCANNER against these planted paths
+  is a separate step. What is proven here is that the paths are real and the
+  ground truth is accurate, which is what the scanner would be graded
+  against.
+
+  The Azure half of this lab is untouched and needs a real subscription.

@@ -9,7 +9,7 @@
 | **Domains** | CyberArk/Idira, AWS, Azure |
 | **Built on** | [cyberark/SkyArk](https://github.com/cyberark/SkyArk) (AWStealth + AzureStealth) |
 | **Cost** | Under $2. **Runtime** ~5 hours |
-| **Status** | Paths planted on LocalStack; ground truth verified against live IAM with negative controls (findings/). AWStealth scoring still needs a real account |
+| **Status** | Escalation path EXERCISED on real AWS: a shadow user with only iam:AttachUserPolicy self-granted admin in one call (findings/real-aws-escalation-proven.txt). Ground truth 4/4. AWStealth + Azure half still pending |
 
 ## Situation
 
