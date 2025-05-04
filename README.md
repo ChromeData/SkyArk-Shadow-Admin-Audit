@@ -39,9 +39,11 @@ Then I wrote a scorer that diffs SkyArk's output against a ground truth file int
 
 ## Result
 
-The scoring core has 9 offline tests (no cloud, no SkyArk) because if the name matching is wrong, a real catch scores as a miss and the tool looks broken. CI runs the tests plus `terraform validate` on both clouds. Building it caught a duplicate data source that `terraform validate` flagged.
+**Exercised on real AWS: a planted shadow admin escalated itself to full administrator in a single call.** Using only its own credentials — one permission, `iam:AttachUserPolicy`, nothing named "admin" — the user attached `AdministratorAccess` to itself and it took effect. That is the entire thesis of the lab, demonstrated rather than described: the danger is not the users that look powerful, it is the one innocuous permission that is a straight line to admin, and an access review grepping for `AdministratorAccess` never sees it. Cost `$0`, IAM only, torn down after. Full output in [findings/real-aws-escalation-proven.txt](./findings/real-aws-escalation-proven.txt).
 
-The missed bucket is the point. It is the gap between what a tool claims and what it does.
+Underneath that, the engineering that makes the audit trustworthy: a scoring harness that verifies the ground truth — the baseline SkyArk gets graded against — matches deployed IAM in *both* directions, so a path described-but-not-deployed or deployed-but-undescribed cannot silently corrupt the score. 9 offline tests, plus negative controls I induced by hand to prove the checker actually fails when the baseline is wrong.
+
+<sub>The whole thing runs on a deliberately-planted taxonomy of six escalation paths mapped to the Rhino Security Labs primitives — the missed one is the point, the gap between what a scanner claims and what it does. Notes in [LAB-NOTES.md](./LAB-NOTES.md).</sub>
 
 ## Safety
 
