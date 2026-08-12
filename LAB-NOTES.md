@@ -110,3 +110,40 @@ would score every decorated SkyArk hit as a miss and make the tool look broken. 
 loose match is the correct trade.
 
 Final run: **9 passed** (`findings/test-run.txt`).
+
+### 2026-08-12, planted the paths for free, and found the baseline was unchecked
+
+Added `use_localstack` and deployed all four AWS escalation paths against
+LocalStack. 14 resources, no account, no cost.
+
+**AWStealth still cannot run here.** It reads credentials from the SDK chain and
+exposes no endpoint override, so it cannot be aimed at LocalStack. Scoring the
+scanner remains a real-account job. Patching vendored SkyArk to inject an
+endpoint was considered and dropped: it is upstream code whose behaviour is the
+thing under test, and editing it to make the test run changes what the test
+measures.
+
+**But the more interesting gap was somewhere else.** `findings/ground-truth.yml`
+is the baseline AWStealth gets scored against, and nothing in this lab had ever
+checked it. If a path is described there but never deploys, or deploys under a
+different principal name, or lacks the permission that makes it dangerous, every
+score computed against it is wrong and nothing says so. The scoring baseline
+deserves exactly the suspicion I have been applying to scanner output.
+
+`scripts/verify_ground_truth.py` now checks it against live IAM, in both
+directions: described-but-absent, and deployed-but-undescribed. The second
+matters just as much, because an undocumented `lab-shadow-*` principal gets
+scored as a false positive against a scanner that was actually right.
+
+Result: 4/4 verified.
+
+**And I ran the negative controls rather than trusting that.** Induced both
+failure modes deliberately, confirmed each is caught with exit 1, confirmed the
+clean case exits 0, and restored the file byte-for-byte. A verifier that cannot
+fail is not a verifier, and after five tools in these labs reported success
+while reading nothing, writing a sixth checker and trusting its green would have
+been the least defensible thing here.
+
+Detail in `findings/localstack-plant-run.txt`.
+
+---
