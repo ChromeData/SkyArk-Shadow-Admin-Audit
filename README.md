@@ -9,7 +9,7 @@
 | **Domains** | CyberArk/Idira, AWS, Azure |
 | **Built on** | [cyberark/SkyArk](https://github.com/cyberark/SkyArk) (AWStealth + AzureStealth) |
 | **Cost** | Under $2. **Runtime** ~5 hours |
-| **Status** | Built and verified. Scorer tested (9 passing, output in findings/). Cloud scan not yet run |
+| **Status** | Paths planted on LocalStack; ground truth verified against live IAM with negative controls (findings/). AWStealth scoring still needs a real account |
 
 ## Situation
 
