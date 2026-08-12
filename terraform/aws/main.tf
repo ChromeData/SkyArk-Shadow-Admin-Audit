@@ -2,7 +2,7 @@
 # DELIBERATELY VULNERABLE. Throwaway account only.
 #
 # Each principal below embeds one well-known IAM privilege-escalation primitive.
-# The point is not that these are exotic — it is that none of them carry the word
+# The point is not that these are exotic, it is that none of them carry the word
 # "admin", so an access review that greps for AdministratorAccess misses all of
 # them, and SkyArk should not.
 #

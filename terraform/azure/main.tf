@@ -55,7 +55,7 @@ resource "azurerm_role_assignment" "ops" {
 }
 
 # -- Shadow admin #2: service principal with Directory.ReadWrite.All --------
-# An app registration that can rewrite the directory — add members to privileged
+# An app registration that can rewrite the directory, add members to privileged
 # groups, reset credentials. A very common real-world finding.
 resource "azuread_application" "overprivileged" {
   display_name = "lab-shadow-graph-app"

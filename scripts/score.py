@@ -34,12 +34,12 @@ def load_scan(name):
     """Load a SkyArk CSV. Returns the set of principal names it flagged.
 
     SkyArk's column names differ between AWStealth and AzureStealth and have
-    changed across versions — this deliberately searches for a name-like column
+    changed across versions, this deliberately searches for a name-like column
     rather than hardcoding one, and prints what it found so you can correct it.
     """
     path = FINDINGS / name
     if not path.exists():
-        print(f"  (no {name} yet — run the scan)")
+        print(f"  (no {name} yet, run the scan)")
         return set()
 
     flagged = set()
@@ -124,7 +124,7 @@ def main():
         "## Missed (write about these)\n",
     ]
     for e in a_fn + z_fn:
-        lines.append(f"- `{e['principal']}` — {e['technique']} — {e['why_dangerous'].strip()}")
+        lines.append(f"- `{e['principal']}`, {e['technique']}, {e['why_dangerous'].strip()}")
     (FINDINGS / "scorecard.md").write_text("\n".join(lines) + "\n")
     print("\nWrote findings/scorecard.md")
 
