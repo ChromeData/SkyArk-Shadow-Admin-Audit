@@ -147,3 +147,40 @@ been the least defensible thing here.
 Detail in `findings/localstack-plant-run.txt`.
 
 ---
+
+### 2026-08-12, exercised the escalation path against real AWS
+
+LocalStack planted the paths and verified ground truth, but it evaluates no
+policy at request time, so it could never answer the only question that matters:
+does the path actually work. A permission string is not an escalation until
+something escalates with it.
+
+So I took the `attachuserpolicy` path end to end on a real account, using only
+the shadow user's own key:
+
+```
+# as lab-shadow-attach, whose ONLY permission is iam:AttachUserPolicy
+aws iam attach-user-policy --user-name lab-shadow-attach \
+  --policy-arn arn:aws:iam::aws:policy/AdministratorAccess
+# -> succeeded
+# AttachedPolicies -> AdministratorAccess
+```
+
+A user with one innocuous-looking permission made itself a full administrator in
+a single call. That is the entire thesis of the lab, demonstrated rather than
+asserted: none of these users are named "admin", and an access review that greps
+for `AdministratorAccess` misses every one of them.
+
+Ground truth verified 4/4 against real IAM first.
+
+**Cleanup needed care.** The self-granted admin was attached *outside* Terraform,
+so `destroy` would not have known about it, and destroying a user with a managed
+policy still attached fails. Detached it explicitly, confirmed no attached
+policies remained, then destroyed. The temporary access key was deleted right
+after the test. 14 resources destroyed, account verified empty.
+
+**Cost: $0**, IAM only. AWStealth (the scanner) still needs a Windows/PowerShell
+run, and the Azure half still needs a subscription. Full output in
+`findings/real-aws-escalation-proven.txt`.
+
+---
