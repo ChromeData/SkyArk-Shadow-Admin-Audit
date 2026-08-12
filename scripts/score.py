@@ -59,26 +59,38 @@ def load_scan(name):
 
 
 def match(principal, flagged):
-    """A planted principal counts as caught if any flagged name contains it."""
+    """A planted principal counts as caught if any flagged name contains it.
+
+    Substring both ways because SkyArk decorates names: it may report
+    "lab-shadow-passrole (IAM User)" or "arn:aws:iam::123:user/lab-shadow-passrole".
+    An exact-equality check would score every real catch as a miss, which is the
+    kind of bug that makes a tool look worse than it is. Kept as its own function
+    so tests/ can pin this behaviour without a live scan.
+    """
     return any(principal in f or f in principal for f in flagged)
+
+
+def classify(planted, flagged):
+    """Pure scoring core: split planted principals into caught vs missed and find
+    extras. Returns (caught, missed, extra) as lists of names. No I/O, so the
+    tests exercise exactly the logic the report depends on."""
+    planted_names = [e["principal"] for e in planted]
+    caught = [e for e in planted if match(e["principal"], flagged)]
+    missed = [e for e in planted if not match(e["principal"], flagged)]
+    extra = [f for f in flagged
+             if not any(p in f or f in p for p in planted_names)]
+    return caught, missed, extra
 
 
 def score_cloud(cloud, entries, flagged):
     print(f"\n=== {cloud.upper()} ===")
-    tp, fn = [], []
-    for e in entries:
-        if match(e["principal"], flagged):
-            tp.append(e)
-            print(f"  [CAUGHT ] {e['principal']:32} {e['technique']}")
-        else:
-            fn.append(e)
-            print(f"  [MISSED ] {e['principal']:32} {e['technique']}")
-
-    planted_names = {e["principal"] for e in entries}
-    fp = [f for f in flagged if not any(p in f or f in p for p in planted_names)]
+    tp, fn, fp = classify(entries, flagged)
+    for e in tp:
+        print(f"  [CAUGHT ] {e['principal']:32} {e['technique']}")
+    for e in fn:
+        print(f"  [MISSED ] {e['principal']:32} {e['technique']}")
     for f in fp:
         print(f"  [EXTRA  ] {f}   <- not planted; investigate")
-
     return tp, fn, fp
 
 

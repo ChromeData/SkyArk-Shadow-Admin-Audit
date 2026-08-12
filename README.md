@@ -1,125 +1,97 @@
 # Lab 02 — Shadow-Admin Discovery Across AWS + Azure
 
-**Stand up two deliberately misconfigured cloud tenants, run CyberArk's SkyArk
-against them, and analyse the privilege-escalation paths it surfaces — the
-accounts that are effectively admin without being labelled admin.**
+[![tests](https://github.com/ChromeData/SkyArk-Shadow-Admin-Audit/actions/workflows/tests.yml/badge.svg)](https://github.com/ChromeData/SkyArk-Shadow-Admin-Audit/actions/workflows/tests.yml)
+
+**Some accounts aren't named "admin" but can turn themselves into admin. I plant
+six of them on purpose across AWS and Azure, run CyberArk's SkyArk to hunt them,
+and score what it catches against what I actually buried.**
 
 | | |
 |---|---|
 | **Domains** | CyberArk/Idira · AWS · Azure |
-| **Built on** | [cyberark/SkyArk](https://github.com/cyberark/SkyArk) (MIT) — `AWStealth` + `AzureStealth` |
-| **Runtime** | ~5 hours · < $2 in cloud spend (IAM/IdP objects are free; only the test EC2/VM cost) |
-| **Status** | 🟡 In progress |
+| **Built on** | [cyberark/SkyArk](https://github.com/cyberark/SkyArk) (MIT) — AWStealth + AzureStealth |
+| **Cost** | < $2 (IAM/IdP objects are free) · **Runtime** ~5 hours |
+| **Status** | 🟡 Built, validated, not yet scanned |
 
 ---
 
-## Why this lab exists
+## The point
 
 "Shadow admin" is the account that can `iam:PassRole` onto an admin role, or holds
-`iam:CreatePolicyVersion` on a policy attached to a privileged principal, or has
-`Contributor` plus `Microsoft.Authorization/roleAssignments/write` in Azure. None
-of them are named `admin`. All of them are game over. SkyArk exists to find them,
-and most people run it once against production, get a scary list, and never build
-the intuition for *why* each finding is dangerous.
+`CreatePolicyVersion` on a policy attached to something privileged, or has
+`roleAssignments/write` in Azure. **None are named admin. All are game over.**
 
-This lab inverts that. You **build the misconfigurations yourself** as Terraform,
-so you know exactly what the ground truth is, then run SkyArk and check whether it
-catches what you planted — and whether it catches anything you did not intend.
-That is the difference between running a tool and understanding it.
+Most people run SkyArk once against production, get a scary list, and never build
+the intuition for *why* each finding is dangerous. This inverts that: I know
+exactly what's planted, so the scan becomes a graded test.
 
-## What I built
+## The six planted paths
 
-- **`terraform/aws`** — a set of IAM principals seeded with classic escalation
-  primitives: `PassRole` + `RunInstances`, `CreatePolicyVersion` on an attached
-  managed policy, `AttachUserPolicy` self-grant, an over-permissive assume-role
-  trust. Each is tagged with the escalation technique it represents.
-- **`terraform/azure`** — Entra ID principals and role assignments modelling the
-  Azure equivalents: a custom role that looks scoped but includes
-  `roleAssignments/write`, a service principal with `Directory.ReadWrite.All`.
-- **A ground-truth manifest** (`findings/ground-truth.yml`) listing every path I
-  planted, so I can score SkyArk's output against it: true positives, and anything
-  it missed.
-- **A scoring script** that diffs SkyArk output against ground truth.
+Each embeds one escalation primitive from the Rhino Security Labs taxonomy, and
+each looks harmless in a permission review:
 
-## What I did not build
+| Principal | Technique | Looks like | Actually |
+|---|---|---|---|
+| `lab-shadow-passrole` | PassRole + RunInstances | "some EC2 access" | launches an instance wearing the admin role |
+| `lab-shadow-policyversion` | CreatePolicyVersion | "can list S3 buckets" | rewrites its own policy to `*` |
+| `lab-shadow-attach` | AttachUserPolicy | "policy management" | attaches AdministratorAccess to itself |
+| `lab-shadow-assumer` | broad trust policy | "low-priv user" | assumes admin via an over-scoped trust |
+| `lab-shadow-ops` (Azure) | roleAssignments/write | "vm-operations" | grants itself Owner |
+| `lab-shadow-graph-app` (Azure) | Directory.ReadWrite.All | "a service principal" | resets any user's credentials |
 
-SkyArk is CyberArk Labs' tool — I did not write the detection logic. My work is the
-deliberately-vulnerable environment, the ground-truth manifest, the scoring, and
-the write-up of which escalation classes the tool catches well and which it misses.
+## The deliverable
 
----
+[`scripts/score.py`](./scripts/score.py) diffs SkyArk's output against
+[`findings/ground-truth.yml`](./findings/ground-truth.yml) and produces three
+buckets:
 
-## ⚠ Safety
+- **Caught** — planted and flagged.
+- **Missed** — planted and *not* flagged. **This is the finding worth writing
+  about**, because it's the gap between what a tool claims and what it does.
+- **Extra** — flagged but not planted. Investigate each; some are real.
 
-This lab **intentionally creates insecure IAM and Entra configurations.**
+The scoring core is unit-tested with **9 offline tests** (no cloud, no SkyArk) —
+because if the name-matching is wrong, a real catch scores as a miss and the tool
+looks broken when it isn't. CI runs the tests plus `terraform validate` on both
+clouds.
 
-- Run it only in a **dedicated throwaway account / tenant.** Never an account with
-  anything real in it.
-- Every resource is tagged `Purpose=security-lab`. The teardown filters on that tag.
-- Do not leave it running. `make destroy` when you finish the session.
-- The trust policies here would be genuinely dangerous if internet-reachable
-  principals could assume them. Keep the external IDs and account conditions intact.
+```bash
+python -m pytest tests/ -v
+```
+
+## Safety
+
+This lab **creates real escalation paths**.
+[`terraform/aws/guardrails.tf`](./terraform/aws/guardrails.tf) refuses to apply in
+an Organizations management account or any account not on an explicit allowlist,
+and everything is tagged `Danger=intentionally-insecure`. Throwaway account only.
+`make destroy` when done.
+
+## What I didn't build
+
+SkyArk is CyberArk's. The planted-escalation environment, the ground-truth
+manifest, the scorer, and the tests are mine.
 
 ---
 
 ## Running it
 
-### Prerequisites
-
 ```bash
-terraform >= 1.9
-pwsh      >= 7.4      # SkyArk is PowerShell
-az        >= 2.60     # Azure CLI
-aws-cli   >= 2.15
-git                    # to clone SkyArk
+make deploy-aws      # plant AWS paths (guardrails run first)
+make deploy-azure    # plant Azure paths
+make scan            # run AWStealth + AzureStealth
+make score           # grade the scan against ground truth
+make destroy
 ```
 
-### Setup
-
-```bash
-make clone-skyark      # git clone cyberark/SkyArk into ./vendor (gitignored)
-make aws-up            # plant the AWS escalation paths
-make azure-up          # plant the Azure ones
-```
-
-### Run the scans
-
-```bash
-make scan-aws          # AWStealth  -> findings/awstealth-raw.csv
-make scan-azure        # AzureStealth -> findings/azurestealth-raw.csv
-make score             # diff against findings/ground-truth.yml
-```
-
-### Teardown
-
-```bash
-make destroy           # destroys both, filtered on Purpose=security-lab
-```
-
----
+Needs Terraform ≥ 1.9, PowerShell 7+ (for SkyArk), Python 3, AWS + Azure test
+tenants.
 
 ## Findings
 
-The deliverable. Suggested framing — score the tool, do not just repeat its output:
+`findings/scorecard.md` is generated by `make score`. [LAB-NOTES.md](./LAB-NOTES.md)
+is the log.
 
-| Escalation path planted | Cloud | SkyArk caught it? | Notes |
-|-------------------------|-------|-------------------|-------|
-| PassRole + RunInstances | AWS | | |
-| CreatePolicyVersion | AWS | | |
-| AttachUserPolicy self-grant | AWS | | |
-| roleAssignments/write in custom role | Azure | | |
-| Directory.ReadWrite.All SP | Azure | | |
+## License
 
-Then the analysis worth writing:
-- **Coverage:** which escalation *classes* does it detect vs. miss?
-- **False positives:** did it flag anything you did not plant? Were they real?
-- **Cross-cloud:** does AWStealth's model of "privileged" match AzureStealth's, or
-  are they measuring different things under the same banner?
-
-## What broke
-
-See [LAB-NOTES.md](./LAB-NOTES.md).
-
-## What I would do differently
-
-_End._
+Lab code: MIT ([LICENSE](./LICENSE)). SkyArk stays MIT, credited above.

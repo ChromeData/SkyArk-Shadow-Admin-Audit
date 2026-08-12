@@ -9,8 +9,8 @@ variable "allowed_account_ids" {
     you must name your throwaway account explicitly. An empty list means every
     apply fails the guardrail, which is the safe default.
   EOT
-  type    = list(string)
-  default = []
+  type        = list(string)
+  default     = []
 }
 
 variable "skip_org_check" {
@@ -19,6 +19,6 @@ variable "skip_org_check" {
     Organization) and the org lookup would otherwise error. The management-account
     guardrail is skipped when true, so leave it false unless you know why.
   EOT
-  type    = bool
-  default = false
+  type        = bool
+  default     = false
 }

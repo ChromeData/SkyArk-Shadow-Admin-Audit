@@ -12,7 +12,8 @@
 terraform {
   required_version = ">= 1.9.0"
   required_providers {
-    aws = { source = "hashicorp/aws", version = "~> 5.60" }
+    aws  = { source = "hashicorp/aws", version = "~> 5.60" }
+    null = { source = "hashicorp/null", version = "~> 3.2" }
   }
 }
 
@@ -26,7 +27,9 @@ provider "aws" {
   }
 }
 
-data "aws_caller_identity" "current" {}
+# aws_caller_identity.current lives in guardrails.tf, which runs first and
+# refuses to apply in an org management account or any account not explicitly
+# allowlisted. Referenced here, declared there.
 
 # A genuinely privileged role, so the escalation paths have a target to reach.
 resource "aws_iam_role" "real_admin" {
