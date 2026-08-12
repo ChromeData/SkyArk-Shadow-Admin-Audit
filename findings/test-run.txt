@@ -1,0 +1,23 @@
+Test run: 2026-08-12 00:37:53
+Host: Windows 11, Python Python 3.14.0
+Command: python -m pytest tests/ -v
+============================================================
+============================= test session starts =============================
+platform win32 -- Python 3.14.0, pytest-9.0.2, pluggy-1.6.0 -- C:\Python314\python.exe
+cachedir: .pytest_cache
+rootdir: C:\Users\SnatchedYourChain\Downloads\pam-cloud-labs-extracted\pam-cloud-labs\02-skyark-shadow-admin-audit
+plugins: anyio-4.12.1, langsmith-0.7.10
+collecting ... collected 9 items
+
+tests/test_score.py::TestMatch::test_exact PASSED                        [ 11%]
+tests/test_score.py::TestMatch::test_skyark_decorates_with_type PASSED   [ 22%]
+tests/test_score.py::TestMatch::test_skyark_reports_full_arn PASSED      [ 33%]
+tests/test_score.py::TestMatch::test_unrelated_is_not_a_match PASSED     [ 44%]
+tests/test_score.py::TestMatch::test_empty_scan_never_matches PASSED     [ 55%]
+tests/test_score.py::TestClassify::test_all_caught PASSED                [ 66%]
+tests/test_score.py::TestClassify::test_a_miss_is_the_headline PASSED    [ 77%]
+tests/test_score.py::TestClassify::test_false_positive_is_surfaced PASSED [ 88%]
+tests/test_score.py::TestClassify::test_nothing_flagged_means_everything_missed PASSED [100%]
+
+============================== 9 passed in 0.03s ==============================
+
