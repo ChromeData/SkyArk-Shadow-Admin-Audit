@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="653" height="306" viewBox="0 0 653 306" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="13">
+<rect width="653" height="306" rx="8" fill="#0d1117" stroke="#30363d"/>
+<rect width="653" height="34" rx="8" fill="#161b22"/>
+<rect y="26" width="653" height="8" fill="#161b22"/>
+<circle cx="18" cy="17" r="5" fill="#ff5f56"/>
+<circle cx="36" cy="17" r="5" fill="#ffbd2e"/>
+<circle cx="54" cy="17" r="5" fill="#27c93f"/>
+<text x="72" y="22" fill="#8b949e">one permission to full admin  (real AWS, $0)</text>
+<text x="16" y="54" fill="#8b949e" xml:space="preserve"># lab-shadow-attach has exactly ONE permission: iam:AttachUserPolicy</text>
+<text x="16" y="74" fill="#8b949e" xml:space="preserve"># nothing named &#x27;admin&#x27;. an access review grepping for AdministratorAccess</text>
+<text x="16" y="94" fill="#8b949e" xml:space="preserve"># would never flag this user.</text>
+<text x="16" y="134" fill="#7ee787">$</text><text x="33" y="134" fill="#c9d1d9">aws iam attach-user-policy --user-name lab-shadow-attach \</text>
+<text x="16" y="154" fill="#c9d1d9" xml:space="preserve">    --policy-arn arn:aws:iam::aws:policy/AdministratorAccess</text>
+<text x="16" y="174" fill="#f85149" xml:space="preserve">  (no error — the call succeeded)</text>
+<text x="16" y="214" fill="#7ee787">$</text><text x="33" y="214" fill="#c9d1d9">aws iam list-attached-user-policies --user-name lab-shadow-attach</text>
+<text x="16" y="234" fill="#c9d1d9" xml:space="preserve">  AdministratorAccess</text>
+<text x="16" y="274" fill="#8b949e" xml:space="preserve"># one permission -&gt; full administrator, in a single call.</text>
+</svg>

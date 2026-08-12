@@ -1,5 +1,8 @@
 # Lab 02: Shadow Admin Discovery Across AWS and Azure
 
+<p align="center"><img src="assets/escalation-real-aws.svg" alt="One permission to full admin, exercised on real AWS" width="720"></p>
+
+
 [![tests](https://github.com/ChromeData/SkyArk-Shadow-Admin-Audit/actions/workflows/tests.yml/badge.svg)](https://github.com/ChromeData/SkyArk-Shadow-Admin-Audit/actions/workflows/tests.yml)
 
 **Some accounts are not named "admin" but can turn themselves into admin. I plant six of them on purpose across AWS and Azure, run CyberArk's SkyArk to hunt them, and score what it catches against what I buried.**
